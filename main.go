@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/goravel/framework/support/facades"
 	"goravel/bootstrap"
+
+	"github.com/goravel/framework/facades"
 )
 
 func main() {
@@ -10,7 +11,11 @@ func main() {
 	bootstrap.Boot()
 
 	// Start http server by facades.Route.
-	go facades.Route.Run(facades.Config.GetString("app.host"))
+	go func() {
+		if err := facades.Route.Run(facades.Config.GetString("app.host")); err != nil {
+			facades.Log.Errorf("Route run error: %v", err)
+		}
+	}()
 
 	select {}
 }

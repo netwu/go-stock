@@ -1,11 +1,11 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/goravel/framework/database/orm"
-	"github.com/goravel/framework/support/facades"
-	"gorm.io/gorm/clause"
+	"github.com/goravel/framework/facades"
 )
 
 // Symbols ...
@@ -30,8 +30,13 @@ type Chddata struct {
 	CreatedAt  time.Time `gorm:"type:TIMESTAMP;not null;default:CURRENT_TIMESTAMP"`
 }
 
-func (m *Chddata) Store(a *[]Chddata) (err error) {
-	facades.DB.Clauses(clause.Insert{Modifier: "IGNORE"}).Create(a)
-	// ret := m.Conn.Create(a)
+func (m *Chddata) Store(datas []Chddata) (err error) {
+	for _, data := range datas {
+		sql := "INSERT INTO chddata (date,symbol,code,name,tclose,high,low,topen,chg,pchg,turnover,voturnover,vaturnover,tcap,mcap) VALUES( '%s','%s','%s','%s',%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f ) ON DUPLICATE KEY UPDATE tclose =%f,high=%f,low =%f,topen =%f,chg =%f,pchg=%f,turnover =%f,voturnover=%f,vaturnover=%f,tcap=%f,mcap=%f"
+		s := fmt.Sprintf(sql, data.Date, data.Symbol, data.Code, data.Name, data.Tclose, data.High, data.Low, data.Topen, data.Chg, data.Pchg, data.Turnover, data.Voturnover, data.Vaturnover, data.Tcap, data.Mcap, data.Tclose, data.High, data.Low, data.Topen, data.Chg, data.Pchg, data.Turnover, data.Voturnover, data.Vaturnover, data.Tcap, data.Mcap)
+		facades.Log.Info("bankuaidic sql", s)
+		facades.Orm.Query().Exec(s)
+	}
+
 	return nil
 }

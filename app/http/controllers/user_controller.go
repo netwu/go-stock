@@ -1,15 +1,21 @@
 package controllers
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/goravel/framework/support/facades"
+	"github.com/goravel/framework/contracts/http"
 )
 
 type UserController struct {
+	//Dependent services
 }
 
-func (r UserController) Show(ctx *gin.Context) {
-	facades.Response.Success(ctx, gin.H{
+func NewUserController() *UserController {
+	return &UserController{
+		//Inject services
+	}
+}
+
+func (r *UserController) Show(ctx http.Context) {
+	ctx.Response().Success().Json(http.Json{
 		"Hello": "Goravel",
 	})
 }

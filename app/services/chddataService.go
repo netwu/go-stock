@@ -12,9 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis"
-	"github.com/goravel/framework/support/facades"
-	"github.com/panjf2000/ants/v2"
+	"github.com/goravel/framework/facades"
 )
 
 var symbolKey string = "Chddatasymbols"
@@ -25,35 +23,44 @@ var Fields = []string{"TCLOSE", "HIGH", "LOW", "TOPEN", "CHG", "PCHG", "TURNOVER
 var chddataApiHost = "http://quotes.money.163.com/service/chddata.html?" + "fields=" + strings.Join(Fields, ";")
 
 type ChddataService struct {
-	redisConn *redis.Client
+	redisUtil *redisUtil.RedisUtil
 	attr      map[string]interface{}
 }
 
 func NewChddataService() *ChddataService {
-	redisConn := redisUtil.InitRedisClient()
-	return &ChddataService{redisConn, make(map[string]interface{})}
+	return &ChddataService{
+		redisUtil.NewRedisUtil(),
+		make(map[string]interface{}),
+	}
+}
+
+func (chddataService *ChddataService) Test() {
+	chddataService.redisUtil.RedisSet("Test", "123", 0)
 }
 func (chddataService *ChddataService) GetAllChddataMulity() {
 	chddataService.PushRedis()
 	chddataService.getLastDate()
-	count := int(redisUtil.RedisLLen(chddataService.redisConn, symbolKey))
+	count := int(chddataService.redisUtil.RedisLLen(symbolKey))
 	if count > 0 {
-		pageSize := 5
-		pageCount := int(math.Ceil(float64(count) / float64(pageSize)))
-		var wg sync.WaitGroup
-		for page := 0; page < pageCount; page++ {
-			p, _ := ants.NewPoolWithFunc(10, func(itf interface{}) {
-				chddataService.GetChddataMulity(itf)
-				wg.Done()
-			})
-			defer p.Release()
+		pageSize := 10
+		var pageCount int
+
+		if count < pageSize {
+			pageCount = 1
+		} else {
+			pageCount = int(math.Ceil(float64(count) / float64(pageSize)))
+		}
+
+		wgChddata := sync.WaitGroup{}
+		for page := 0; page <= pageCount; page++ {
 			for perPage := 0; perPage < pageSize; perPage++ {
-				wg.Add(1)
-				_ = p.Invoke(perPage)
-
+				wgChddata.Add(1)
+				go func() {
+					chddataService.GetChddataMulity()
+					wgChddata.Done()
+				}()
 			}
-			wg.Wait()
-
+			wgChddata.Wait()
 			// time.Sleep(time.Duration(1) * time.Second)
 		}
 	}
@@ -61,16 +68,16 @@ func (chddataService *ChddataService) GetAllChddataMulity() {
 }
 
 func (chddataService *ChddataService) PushRedis() {
-	redisUtil.DelKeyRedis(chddataService.redisConn, symbolKey)
+	chddataService.redisUtil.DelKeyRedis(symbolKey)
 	var results []map[string]interface{}
-	facades.DB.Table("symbols").Order("id").Scan(&results)
+	facades.Orm.Query().Table("symbols").Order("id").Scan(&results)
 	for _, symbol := range results {
 		jsonString, err := json.Marshal(symbol)
 		if err != nil {
 			panic(err)
 		}
-		redisUtil.DelKeyRedis(chddataService.redisConn, "max_date:"+symbol["code"].(string))
-		redisUtil.PushRedis(chddataService.redisConn, symbolKey, string(jsonString))
+		chddataService.redisUtil.DelKeyRedis("max_date:" + symbol["code"].(string))
+		chddataService.redisUtil.PushRedis(symbolKey, string(jsonString))
 	}
 
 	fmt.Println("pushRedis success")
@@ -79,31 +86,28 @@ func (chddataService *ChddataService) PushRedis() {
 func (chddataService *ChddataService) getLastDate() {
 	// sql := "from chddata group by code"
 	var results []map[string]interface{}
-	facades.DB.Table("chddata").Select("code,max(date) max_date ").Group("code").Scan(&results)
+	facades.Orm.Query().Table("chddata").Select("code,max(date) max_date ").Group("code").Scan(&results)
 	for _, v := range results {
-		redisUtil.RedisSet(chddataService.redisConn, "max_date:"+v["code"].(string), v["max_date"].(time.Time).Format("20060102"), 0)
+		chddataService.redisUtil.RedisSet("max_date:"+v["code"].(string), v["max_date"].(time.Time).Format("20060102"), 0)
 	}
+	return
 }
 
-func (chddataService *ChddataService) GetChddataMulity(i interface{}) {
+func (chddataService *ChddataService) GetChddataMulity() {
 	// func (chddataService *ChddataService) GetChddataMulity() {
 	// facades.Log.Info("getChddataMulity")
 	var symbol models.Symbols
 
-	// symbolStr := redisUtil.RedisRPop(chddataService.redisConn, symbolKey)
-	symbolStr, err := chddataService.redisConn.RPop(symbolKey).Result()
-	if err != nil {
-		facades.Log.Error(err)
-		// return err
-	}
+	// symbolStr := chddataService.redisUtil.RedisRPop(chddataService.redisConn, symbolKey)
+	symbolStr := chddataService.redisUtil.RedisRPop(symbolKey)
+
 	json.Unmarshal([]byte(symbolStr), &symbol)
 
 	chddatas := chddataService.getChddataFromSymbol(symbol, "")
-	// ChddataRepo := _ChddataRepository.NewMysqlChddataRepository(chddataService.dbConn)
 
 	if chddatas != nil {
 		chddateModel := models.Chddata{}
-		chddateModel.Store(&chddatas)
+		chddateModel.Store(chddatas)
 	}
 	return
 
@@ -116,7 +120,7 @@ func (chddataService *ChddataService) getChddataFromSymbol(symbol models.Symbols
 		return nil
 	}
 	start := "20211001"
-	max_data := redisUtil.RedisGet(chddataService.redisConn, "max_date:"+symbol.Code)
+	max_data := chddataService.redisUtil.RedisGet("max_date:" + symbol.Code)
 	if max_data != "" {
 		start = max_data
 	}
@@ -140,17 +144,56 @@ func (chddataService *ChddataService) getChddataFromSymbol(symbol models.Symbols
 			chddata.Code = symbol.Code
 			chddata.Name = symbol.Name
 			chddata.Date = chddataMap["date"].(string)
-			chddata.Tclose = chddataMap["TCLOSE"].(float64)
-			chddata.High = chddataMap["HIGH"].(float64)
-			chddata.Low = chddataMap["LOW"].(float64)
-			chddata.Topen = chddataMap["TOPEN"].(float64)
-			chddata.Chg = chddataMap["CHG"].(float64)
-			chddata.Pchg = chddataMap["PCHG"].(float64)
-			chddata.Turnover = chddataMap["TURNOVER"].(float64)
-			chddata.Voturnover = chddataMap["VOTURNOVER"].(float64)
-			chddata.Vaturnover = chddataMap["VATURNOVER"].(float64)
-			chddata.Tcap = chddataMap["TCAP"].(float64)
-			chddata.Mcap = chddataMap["MCAP"].(float64)
+			chddata.Tclose = 0
+			if nil != chddataMap["TCLOSE"] {
+				chddata.Tclose = chddataMap["TCLOSE"].(float64)
+			}
+
+			chddata.High = 0
+			if nil != chddataMap["HIGH"] {
+				chddata.High = chddataMap["HIGH"].(float64)
+			}
+			chddata.Low = 0
+			if nil != chddataMap["LOW"] {
+				chddata.Low = chddataMap["LOW"].(float64)
+			}
+			chddata.Topen = 0
+			if nil != chddataMap["TOPEN"] {
+				chddata.Topen = chddataMap["TOPEN"].(float64)
+			}
+
+			chddata.Chg = 0
+			if nil != chddataMap["CHG"] {
+				chddata.Chg = chddataMap["CHG"].(float64)
+			}
+			chddata.Pchg = 0
+			if nil != chddataMap["PCHG"] {
+				chddata.Pchg = chddataMap["PCHG"].(float64)
+
+			}
+
+			chddata.Turnover = 0
+			if nil != chddataMap["TURNOVER"] {
+				chddata.Turnover = chddataMap["TURNOVER"].(float64)
+			}
+			chddata.Voturnover = 0
+			if nil != chddataMap["VOTURNOVER"] {
+				chddata.Voturnover = chddataMap["VOTURNOVER"].(float64)
+			}
+			chddata.Vaturnover = 0
+			if nil != chddataMap["VATURNOVER"] {
+				chddata.Vaturnover = chddataMap["VATURNOVER"].(float64)
+			}
+
+			chddata.Tcap = 0
+			if nil != chddataMap["TCAP"] {
+				chddata.Tcap = chddataMap["TCAP"].(float64)
+			}
+
+			chddata.Mcap = 0
+			if nil != chddataMap["MCAP"] {
+				chddata.Mcap = chddataMap["MCAP"].(float64)
+			}
 
 			chddatas = append(chddatas, chddata)
 		}
@@ -171,28 +214,30 @@ func getHeader() map[string]string {
 func (chddataService *ChddataService) ParseChddataFromHtml(htmlContent string) []map[string]interface{} {
 	var chddataMaps []map[string]interface{}
 	csvList := strings.Split(htmlContent, "\r\n")
+	if len(csvList) > 1 {
+		csvDataList := csvList[1:]
+		for _, dataStr := range csvDataList {
+			if dataStr != "" {
+				chddata := make(map[string]interface{})
+				dataArr := strings.Split(dataStr, ",")
 
-	csvDataList := csvList[1:]
-	for _, dataStr := range csvDataList {
-		if dataStr != "" {
-			chddata := make(map[string]interface{})
-			dataArr := strings.Split(dataStr, ",")
+				chddata["date"] = dataArr[0]
+				DataItemList := dataArr[3:]
 
-			chddata["date"] = dataArr[0]
-			DataItemList := dataArr[3:]
-
-			for k, v := range DataItemList {
-				chddata[Fields[k]] = lib.String2float64(v)
+				for k, v := range DataItemList {
+					chddata[Fields[k]] = lib.String2float64(v)
+				}
+				chddataMaps = append(chddataMaps, chddata)
 			}
-			chddataMaps = append(chddataMaps, chddata)
 		}
 	}
+
 	return chddataMaps
 }
 
 func (chddataService *ChddataService) updateChddataMonth() {
 	sql := "insert into chddata_months (code,name,month,avg_price) select code,name,left(date,7)as month,avg(tclose) as avg_price from chddata  group by code,month"
-	facades.DB.Exec(sql)
+	facades.Orm.Query().Exec(sql)
 }
 
 // select t1.*,t2.month,t2.avg_price,t3.month,t3.avg_price from chddata_months t1,chddata_months t2,chddata_months t3 where t1.code=t2.code and t1.code=t3.code and t1.month='2021-10' and t2.month='2021-11' and t3.month='2021-12' and t1.name not like '%ST%' group by t1.month,t1.code having t3.avg_price>t2.avg_price and t2.avg_price>t1.avg_price

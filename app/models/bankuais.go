@@ -1,6 +1,11 @@
 package models
 
-import "github.com/goravel/framework/database/orm"
+import (
+	"fmt"
+
+	"github.com/goravel/framework/database/orm"
+	"github.com/goravel/framework/facades"
+)
 
 // Symbols ...
 type Bankuais struct {
@@ -11,4 +16,20 @@ type Bankuais struct {
 	Name    string `gorm:"type:varchar(255);not null"`
 	Bankuai string `gorm:"type:varchar(512);not null"`
 	Zhuying string `gorm:"type:varchar(512);not null"`
+}
+
+func (bankuaiModel *Bankuais) UpdateOrCreate(datas []Bankuais) (err error) {
+	for _, data := range datas {
+		sql := "INSERT INTO bankuais (symbol,code,name,bankuai,zhuying) VALUES( '%s','%s','%s','%s','%s'  ) ON DUPLICATE KEY UPDATE symbol='%s',code='%s', name='%s',bankuai='%s',zhuying='%s'"
+		s := fmt.Sprintf(sql, data.Symbol, data.Code, data.Name, data.Bankuai, data.Zhuying, data.Symbol, data.Code, data.Name, data.Bankuai, data.Zhuying)
+		facades.Log.Info("bankuaidic sql", s)
+		facades.Orm.Query().Exec(s)
+		// facades.Orm.Query().Clauses(clause.OnConflict{
+		// 	Columns:   []clause.Column{{Name: "code"}},
+		// 	DoUpdates: clause.AssignmentColumns([]string{"symbol", "name", "bankuai", "zhuying"}), // column needed to be updated
+		// }).Create(&data)
+
+	}
+
+	return
 }

@@ -3,17 +3,20 @@ package config
 import (
 	"goravel/app/providers"
 
+	"github.com/goravel/framework/auth"
 	"github.com/goravel/framework/cache"
 	"github.com/goravel/framework/console"
 	"github.com/goravel/framework/contracts"
 	"github.com/goravel/framework/database"
-	foundation "github.com/goravel/framework/foundation/providers"
+	"github.com/goravel/framework/event"
+	"github.com/goravel/framework/facades"
+	"github.com/goravel/framework/grpc"
 	"github.com/goravel/framework/http"
 	"github.com/goravel/framework/log"
+	"github.com/goravel/framework/mail"
 	"github.com/goravel/framework/queue"
 	"github.com/goravel/framework/route"
 	"github.com/goravel/framework/schedule"
-	"github.com/goravel/framework/support/facades"
 )
 
 //Boot Start all init methods of the current folder to bootstrap all config.
@@ -26,7 +29,7 @@ func init() {
 		//This value is the name of your application. This value is used when the
 		//framework needs to place the application's name in a notification or
 		//any other location as required by the application or its packages.
-		"name": config.Env("APP_NAME", "nft"),
+		"name": config.Env("APP_NAME", "Goravel"),
 
 		//Application Environment
 		//This value determines the "environment" your application is currently
@@ -36,6 +39,12 @@ func init() {
 
 		//Application Debug Mode
 		"debug": config.Env("APP_DEBUG", false),
+
+		//Application Timezone
+		//Here you may specify the default timezone for your application, which
+		//will be used by the PHP date and date-time functions. We have gone
+		//ahead and set this to a sensible default for you out of the box.
+		"timezone": "UTC",
 
 		//Encryption Key
 		//32 character string, otherwise these encrypted strings
@@ -48,9 +57,7 @@ func init() {
 		//Application host, http server listening address.
 		"host": config.Env("APP_HOST", "127.0.0.1:3000"),
 
-		"grpc_host": config.Env("GRPC_HOST", ""),
-
-		//Autoloaded service providers
+		//Autoload service providers
 		//The service providers listed here will be automatically loaded on the
 		//request to your application. Feel free to add your own services to
 		//this array to grant expanded functionality to your applications.
@@ -60,15 +67,19 @@ func init() {
 			&database.ServiceProvider{},
 			&cache.ServiceProvider{},
 			&http.ServiceProvider{},
-			&foundation.ArtisanServiceProvider{},
 			&route.ServiceProvider{},
 			&schedule.ServiceProvider{},
+			&event.ServiceProvider{},
 			&queue.ServiceProvider{},
+			&grpc.ServiceProvider{},
+			&mail.ServiceProvider{},
+			&auth.ServiceProvider{},
 			&providers.AppServiceProvider{},
 			&providers.RouteServiceProvider{},
 			&providers.GrpcServiceProvider{},
 			&providers.ConsoleServiceProvider{},
 			&providers.QueueServiceProvider{},
+			&providers.EventServiceProvider{},
 		},
 	})
 }

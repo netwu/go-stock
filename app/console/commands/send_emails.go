@@ -4,32 +4,29 @@ import (
 	"fmt"
 
 	"github.com/goravel/framework/contracts/console"
-	"github.com/urfave/cli/v2"
+	"github.com/goravel/framework/contracts/console/command"
 )
 
-type SendEmails struct {
+type Migration struct {
 }
 
 //Signature The name and signature of the console command.
-func (receiver *SendEmails) Signature() string {
-	return "emails"
+func (receiver *Migration) Signature() string {
+	return "Migration"
 }
 
 //Description The console command description.
-func (receiver *SendEmails) Description() string {
+func (receiver *Migration) Description() string {
 	return "Command description"
 }
 
 //Extend The console command extend.
-func (receiver *SendEmails) Extend() console.CommandExtend {
-	return console.CommandExtend{}
+func (receiver *Migration) Extend() command.Extend {
+	return command.Extend{}
 }
 
 //Handle Execute the console command.
-func (receiver *SendEmails) Handle(c *cli.Context) error {
-
-	name := c.Args().Get(0)
-	email := c.Args().Get(1)
-	fmt.Println(name, email)
+func (receiver *Migration) Handle(ctx console.Context) error {
+	fmt.Println("hello world")
 	return nil
 }

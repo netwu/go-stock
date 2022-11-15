@@ -8,9 +8,6 @@ import (
 	"goravel/lib/httpUtil"
 	"strings"
 	"sync"
-	"sync/atomic"
-
-	"github.com/panjf2000/ants/v2"
 )
 
 var sum int32
@@ -44,28 +41,26 @@ func GetAllStock() error {
 	symbolModel := models.Symbols{}
 	fmt.Println("start")
 	pages := 40
-	pagesize := "100"
-	var wg sync.WaitGroup
+	pagesize := "110"
+	staockWg := sync.WaitGroup{}
 	nodes := [2]string{"sh_a", "sz_a"}
 	api := apiHost + pagesize
+
 	for i := 0; i < len(nodes); i++ {
 		apiTmp := api
 		apiTmp += "&node=" + nodes[i]
-		p, _ := ants.NewPoolWithFunc(10, func(i interface{}) {
-			symbols := RequestApi(i, apiTmp)
-			fmt.Print(len(symbols))
-			if len(symbols) > 0 {
-				symbolModel.UpdateOrCreate(symbols)
-			}
-			wg.Done()
-		})
-		defer p.Release()
-		// Submit tasks one by one.
-		for i := 0; i < pages; i++ {
-			wg.Add(1)
-			_ = p.Invoke(int32(i))
+		var j int32
+		for j = 0; j < int32(pages); j++ {
+			staockWg.Add(1)
+			go func(n int32) {
+				symbols := RequestApi(n, apiTmp)
+				if len(symbols) > 0 {
+					symbolModel.UpdateOrCreate(symbols)
+				}
+				staockWg.Done()
+			}(j)
 		}
-		wg.Wait()
+		staockWg.Wait()
 	}
 	return nil
 
@@ -76,7 +71,7 @@ func RequestApi(i interface{}, apiTmp string) []models.Symbols {
 
 	n := i.(int32)
 	n += 1
-	atomic.AddInt32(&sum, n)
+	// atomic.AddInt32(&sum, n)
 	apiTmp += "&page=" + lib.String(n)
 	result := httpUtil.HttpGet(apiTmp)
 	fmt.Println(apiTmp)

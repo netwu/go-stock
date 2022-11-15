@@ -1,11 +1,11 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/goravel/framework/database/orm"
-	"github.com/goravel/framework/support/facades"
-	"gorm.io/gorm/clause"
+	"github.com/goravel/framework/facades"
 )
 
 // Symbols ...
@@ -41,12 +41,25 @@ type Symbols struct {
 
 func (symbolModel *Symbols) UpdateOrCreate(datas []Symbols) (err error) {
 	for _, data := range datas {
-		facades.DB.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "code"}},
-			DoUpdates: clause.AssignmentColumns([]string{"trade", "pricechange", "changepercent", "buy", "sell", "settlement", "open", "high", "low", "volume", "amount", "ticktime", "per", "pb", "mktcap", "nmc", "turnoverratio"}), // column needed to be updated
-		}).Create(&data)
+		sql := "INSERT INTO symbols (symbol, code, name, trade, pricechange, changepercent, buy, sell, settlement, open, high, low, volume, amount, ticktime, per, pb, mktcap, nmc, cbs_rank, score, content,turnoverratio, roe) VALUES( '%s', '%s', '%s', %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, '%s', %f, %f, %f, %f, %f, %f, '%s', %f,%f ) ON DUPLICATE KEY UPDATE trade=%f,pricechange=%f,changepercent=%f,buy=%f,sell=%f,settlement=%f,open=%f,high=%f,low=%f,volume=%f,amount=%f,ticktime='%s',per=%f,pb=%f,mktcap=%f,nmc=%f,cbs_rank=%f,score=%f,content='%s',turnoverratio =%f,roe=%f"
+		s := fmt.Sprintf(sql, data.Symbol, data.Code, data.Name, data.Trade, data.Pricechange, data.Changepercent, data.Buy, data.Sell, data.Settlement, data.Open, data.High, data.Low, data.Volume, data.Amount, data.Ticktime, data.Per, data.Pb, data.Mktcap, data.Nmc, data.Cbs_rank, data.Score, data.Content, data.Turnoverratio, data.Roe, data.Trade, data.Pricechange, data.Changepercent, data.Buy, data.Sell, data.Settlement, data.Open, data.High, data.Low, data.Volume, data.Amount, data.Ticktime, data.Per, data.Pb, data.Mktcap, data.Nmc, data.Cbs_rank, data.Score, data.Content, data.Turnoverratio, data.Roe)
+		facades.Log.Info("bankuaidic sql", s)
+		facades.Orm.Query().Exec(s)
+		// 	facades.DB.Clauses(clause.OnConflict{
+		// 		Columns:   []clause.Column{{Name: "code"}},
+		// 		DoUpdates: clause.AssignmentColumns([]string{"trade", "pricechange", "changepercent", "buy", "sell", "settlement", "open", "high", "low", "volume", "amount", "ticktime", "per", "pb", "mktcap", "nmc", "turnoverratio"}), // column needed to be updated
+		// 	}).Create(&data)
+		// facades.Orm.Connection().Connection()
 
 	}
 
 	return
 }
+
+//  symbol, code, name, trade, pricechange, changepercent, buy, sell, settlement, open, high, low, volume, amount, ticktime, per, pb, mktcap, nmc, cbs_rank, score, content,turnoverratio, roe
+
+// data.Symbol,data.Code,data.Name,data.Trade,data.Pricechange,data.Changepercent,data.Buy,data.Sell,data.Settlement,data.Open,data.High,data.Low,data.Volume,data.Amount,data.Ticktime,data.Per,data.Pb,data.Mktcap,data.Nmc,data.Cbs_rank,data.Score,data.Content,data.Turnoverratio,data.Roe,data.Trade,data.Pricechange,data.Changepercent,data.Buy,data.Sell,data.Settlement,data.Open,data.High,data.Low,data.Volume,data.Amount,data.Ticktime,data.Per,data.Pb,data.Mktcap,data.Nmc,data.Cbs_rank,data.Score,data.Content,data.Turnoverratio,data.Roe,
+// '%s', '%s', '%s', %f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,'%s', %f,%f,%f,%f,%f,%f,
+// '%s' %f,%f,
+
+// trade=%f,pricechange=%f,changepercent=%f,buy=%f,sell=%f,settlement=%f,open=%f,high=%f,low=%f,volume=%f,amount=%f,ticktime='%s',per=%f,pb=%f,mktcap=%f,nmc=%f,cbs_rank=%f,score=%f,content='%s',turnoverratio =%f,roe=%f,

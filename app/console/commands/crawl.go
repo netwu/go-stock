@@ -3,10 +3,11 @@ package commands
 import (
 	"fmt"
 	"goravel/app/services"
+	"sync"
 
 	"github.com/goravel/framework/contracts/console"
-	"github.com/goravel/framework/support/facades"
-	"github.com/urfave/cli/v2"
+	"github.com/goravel/framework/contracts/console/command"
+	"github.com/goravel/framework/facades"
 )
 
 type Crawl struct {
@@ -19,17 +20,17 @@ func (receiver *Crawl) Signature() string {
 
 //Description The console command description.
 func (receiver *Crawl) Description() string {
-	return "Crawl Description"
+	return "Command description"
 }
 
 //Extend The console command extend.
-func (receiver *Crawl) Extend() console.CommandExtend {
-	return console.CommandExtend{}
+func (receiver *Crawl) Extend() command.Extend {
+	return command.Extend{}
 }
 
 //Handle Execute the console command.
-func (receiver *Crawl) Handle(c *cli.Context) error {
-	name := c.Args().Get(0)
+func (receiver *Crawl) Handle(ctx console.Context) error {
+	name := ctx.Argument(0)
 	facades.Log.Info(fmt.Sprintf("%s start", name))
 	switch name {
 	case "symbol":
@@ -38,11 +39,28 @@ func (receiver *Crawl) Handle(c *cli.Context) error {
 		chddataService := services.NewChddataService()
 		chddataService.GetAllChddataMulity()
 	default:
-		services.GetAllStock()
-		chddataService := services.NewChddataService()
-		chddataService.GetAllChddataMulity()
+		getAllData()
 	}
 
 	facades.Log.Info(fmt.Sprintf("%s success", name))
+	return nil
+}
+
+func getAllData() error {
+	services.GetAllStock()
+	wgAll := sync.WaitGroup{}
+	wgAll.Add(1)
+	go func() {
+		chddataService := services.NewChddataService()
+		chddataService.GetAllChddataMulity()
+		wgAll.Done()
+	}()
+	wgAll.Add(1)
+	go func() {
+		bankuaiService := services.NewBankuaiService()
+		bankuaiService.GetAllBankuaiMulity()
+		wgAll.Done()
+	}()
+	wgAll.Wait()
 	return nil
 }

@@ -5,74 +5,95 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/goravel/framework/support/facades"
+	"github.com/goravel/framework/facades"
 )
 
+type RedisUtil struct {
+	client *redis.Client
+}
+
+func NewRedisUtil() *RedisUtil {
+	return &RedisUtil{
+		InitRedisClient(),
+	}
+}
 func InitRedisClient() *redis.Client {
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", facades.Config.GetString("database.redis.default.host"), facades.Config.GetString("database.redis.default.port")),
 		Password: facades.Config.GetString("database.redis.default.password"),
 		DB:       facades.Config.GetInt("database.redis.default.database"),
 	})
+	_, err := client.Ping().Result()
+	if err != nil {
+		fmt.Println("Redis Client Error ")
+	} else {
+		fmt.Println("Redis Client Success")
+
+	}
 	return client
+
 }
 
-func BatchPushRedis(client *redis.Client, key string, values []string) {
+func (RedisUtil *RedisUtil) BatchPushRedis(key string, values []string) {
 	for _, v := range values {
-		err := client.LPush(key, v).Err()
+		err := RedisUtil.client.LPush(key, v).Err()
 		if err != nil {
 			panic(err)
 		}
 	}
 }
-func PushRedis(client *redis.Client, key string, v string) bool {
-	err := client.LPush(key, v).Err()
+func (RedisUtil *RedisUtil) PushRedis(key string, v string) bool {
+
+	err := RedisUtil.client.LPush(key, v).Err()
 	if err != nil {
 		panic(err)
 	}
 	return true
 }
-func DelKeyRedis(client *redis.Client, key string) bool {
-	err := client.Del(key).Err()
+func (RedisUtil *RedisUtil) DelKeyRedis(key string) bool {
+
+	err := RedisUtil.client.Del(key).Err()
 	if err != nil {
 		panic(err)
 	}
 	return true
 }
-func RedisRPop(client *redis.Client, key string) string {
-	val, err := client.RPop(key).Result()
+func (RedisUtil *RedisUtil) RedisRPop(key string) string {
+	val, err := RedisUtil.client.RPop(key).Result()
 	if err != nil {
 		return ""
 	}
 	return val
 }
-func RedisLLen(client *redis.Client, key string) int64 {
-	val, err := client.LLen(key).Result()
+func (RedisUtil *RedisUtil) RedisLLen(key string) int64 {
+	val, err := RedisUtil.client.LLen(key).Result()
 	if err != nil {
 		panic(err)
 	}
 
 	return val
 }
-func RedisSet(client *redis.Client, key string, val string, expire int) {
-	val, err := client.Set(key, val, time.Duration(expire)*time.Second).Result()
+func (RedisUtil *RedisUtil) RedisSet(key string, val string, expire int) {
+
+	val, err := RedisUtil.client.Set(key, val, time.Duration(expire)*time.Second).Result()
 	if err != nil {
 		panic(err)
 	}
 
 }
-func RedisGet(client *redis.Client, key string) string {
-	val, err := client.Get(key).Result()
+func (RedisUtil *RedisUtil) RedisGet(key string) string {
+	val, err := RedisUtil.client.Get(key).Result()
 	if err != nil {
 		return ""
 	}
 	return val
 
 }
-func RedisBatchPop(client *redis.Client, key string, count int) []string {
+func (RedisUtil *RedisUtil) RedisBatchPop(key string, count int) []string {
+
 	var ret []string
 	for i := 0; i < count; i++ {
-		ret = append(ret, RedisRPop(client, key))
+		ret = append(ret, RedisUtil.RedisRPop(key))
 	}
 	return ret
 	// pipe := client.Pipeline()
@@ -90,4 +111,8 @@ func RedisBatchPop(client *redis.Client, key string, count int) []string {
 	// }
 	// fmt.Println(result.Val())
 
+}
+
+func (RedisUtil *RedisUtil) RedisInc(key string) {
+	RedisUtil.client.Incr(key)
 }

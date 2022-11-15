@@ -10,14 +10,15 @@ import (
 type Kernel struct {
 }
 
-func (kernel Kernel) Schedule() []schedule.Event {
+func (kernel *Kernel) Schedule() []schedule.Event {
 	return []schedule.Event{}
 }
 
 func (kernel Kernel) Commands() []console.Command {
 	return []console.Command{
+		&commands.SendEmails{},
 		&commands.Migration{},
 		&commands.Crawl{},
-		&commands.Test{},
+		&commands.BankuaiDic{},
 	}
 }
