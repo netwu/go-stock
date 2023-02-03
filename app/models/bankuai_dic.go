@@ -13,4 +13,5 @@ type BankuaiDic struct {
 	Name      string    `gorm:"type:varchar(255);not null;index:idx_name,unique"`
 	Count     int32     `gorm:"type:int;not null"`
 	CreatedAt time.Time `gorm:"type:TIMESTAMP;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `gorm:"type:TIMESTAMP;not null;default:CURRENT_TIMESTAMP on update current_timestamp;"`
 }

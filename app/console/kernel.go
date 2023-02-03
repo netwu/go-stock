@@ -19,6 +19,5 @@ func (kernel Kernel) Commands() []console.Command {
 		&commands.SendEmails{},
 		&commands.Migration{},
 		&commands.Crawl{},
-		&commands.BankuaiDic{},
 	}
 }

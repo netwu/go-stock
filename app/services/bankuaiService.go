@@ -44,11 +44,9 @@ func (bankuaiService *BankuaiService) PushRedis() {
 		if err != nil {
 			panic(err)
 		}
-		facades.Log.Info("pushRedis bankuaiSymbolKey", string(jsonString))
 		bankuaiService.redisUtil.PushRedis(bankuaiSymbolKey, string(jsonString))
 	}
 
-	facades.Log.Info("pushRedis bankuaiSymbolKey")
 	return
 }
 func (bankuaiService *BankuaiService) GetAllBankuaiMulity() {
@@ -85,11 +83,12 @@ func (bankuaiService *BankuaiService) GetAllBankuaiMulity() {
 				json.Unmarshal([]byte(v), &bankuai)
 				bankuaiSlice = append(bankuaiSlice, bankuai)
 			}
-			facades.Log.Info("bankuai 入库:", bankuaiSlice)
+			// facades.Log.Info("bankuai 入库:", bankuaiSlice)
 			bankuaiModel.UpdateOrCreate(bankuaiSlice)
 			time.Sleep(1 * time.Second)
 		}
 	}
+	bankuaiService.SaveBankuaiDic()
 
 }
 
@@ -107,10 +106,20 @@ func (bankuaiService *BankuaiService) GetBankuaiMulity() {
 }
 func getBankuaisFromSymbol(symbol models.Symbols) models.Bankuais {
 	var bankuaiInfo models.Bankuais
-	bankuaiInfo.Symbol = symbol.Symbol
+	bankuaiInfo.Market = symbol.Market
 	bankuaiInfo.Code = symbol.Code
 	bankuaiInfo.Name = symbol.Name
-	api := apiSina + symbol.Symbol + "/nc.shtml"
+	MarketMap := make(map[string]string)
+	MarketMap["0"] = "sz"
+	MarketMap["3"] = "sz"
+	MarketMap["6"] = "sh"
+	MarketMap["8"] = "bj"
+	MarketMap["4"] = "bj"
+	market := MarketMap[strings.Split(symbol.Code, "")[0]]
+	api := apiSina + market + symbol.Code + "/nc.shtml"
+
+	facades.Log.Info(api)
+	// api := apiSina + symbol.Market + "/nc.shtml"
 	content := httpUtil.Request(api, nil, "")
 	bankuaiRet := getBankuaisFromHtml(content)
 	bankuaiInfo.Zhuying = bankuaiRet["zhuying"]
@@ -157,4 +166,32 @@ func getBankuaisFromHtml(htmlContent string) map[string]string {
 	companyMap["bankuai"] = strings.Join(bankuaiSlice, ",")
 
 	return companyMap
+}
+
+func (bankuaiService *BankuaiService) SaveBankuaiDic() {
+	var results []map[string]interface{}
+	facades.Orm.Query().Table("bankuais").Order("id").Scan(&results)
+	bankuaiMap := make(map[string]int)
+	for _, symbol := range results {
+		bankuai := symbol["bankuai"].(string)
+		bankuaiList := strings.Split(bankuai, ",")
+		for _, bankuaiItem := range bankuaiList {
+			if bankuaiItem != "" {
+				if _, ok := bankuaiMap[bankuaiItem]; ok {
+					bankuaiMap[bankuaiItem] = bankuaiMap[bankuaiItem] + 1
+				} else {
+					bankuaiMap[bankuaiItem] = 1
+				}
+			}
+		}
+	}
+	for k, v := range bankuaiMap {
+		sql := "INSERT INTO bankuai_dics (name,count) VALUES( '%s', %d ) ON DUPLICATE KEY UPDATE name='%s', count = %d"
+		s := fmt.Sprintf(sql, k, v, k, v)
+		// facades.Log.Info("bankuaidic sql", s)
+		facades.Orm.Query().Exec(s)
+	}
+
+	facades.Log.Info("SaveBankuaiDic Success")
+	return
 }

@@ -12,7 +12,7 @@ type SendEmails struct {
 
 //Signature The name and signature of the console command.
 func (receiver *SendEmails) Signature() string {
-	return "SendEmails"
+	return "migration"
 }
 
 //Description The console command description.

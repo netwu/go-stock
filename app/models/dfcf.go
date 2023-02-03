@@ -23,4 +23,5 @@ type Dfcf struct {
 	Zlkp      string    `gorm:"type:varchar(512);comment:主力控盘;not null"`
 	Hypm      int       `gorm:"type:int;comment:行业排名;not null"`
 	CreatedAt time.Time `gorm:"type:TIMESTAMP;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `gorm:"type:TIMESTAMP;not null;default:CURRENT_TIMESTAMP on update current_timestamp;"`
 }

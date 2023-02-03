@@ -30,14 +30,18 @@ func (receiver *Crawl) Extend() command.Extend {
 
 //Handle Execute the console command.
 func (receiver *Crawl) Handle(ctx console.Context) error {
+
+	services.Migrate()
 	name := ctx.Argument(0)
 	facades.Log.Info(fmt.Sprintf("%s start", name))
 	switch name {
 	case "symbol":
 		services.GetAllStock()
 	case "chddata":
-		chddataService := services.NewChddataService()
-		chddataService.GetAllChddataMulity()
+		services.GetAllChddataMulity()
+	case "bankuai":
+		bankuaiService := services.NewBankuaiService()
+		bankuaiService.GetAllBankuaiMulity()
 	default:
 		getAllData()
 	}
@@ -49,15 +53,15 @@ func (receiver *Crawl) Handle(ctx console.Context) error {
 func getAllData() error {
 	services.GetAllStock()
 	wgAll := sync.WaitGroup{}
+
+	bankuaiService := services.NewBankuaiService()
 	wgAll.Add(1)
 	go func() {
-		chddataService := services.NewChddataService()
-		chddataService.GetAllChddataMulity()
+		services.GetAllChddataMulity()
 		wgAll.Done()
 	}()
 	wgAll.Add(1)
 	go func() {
-		bankuaiService := services.NewBankuaiService()
 		bankuaiService.GetAllBankuaiMulity()
 		wgAll.Done()
 	}()
