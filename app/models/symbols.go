@@ -50,11 +50,6 @@ func (symbolModel *Symbols) UpdateOrCreate(datas []Symbols) (err error) {
 		facades.Log.Info("bankuaidic sql", s)
 		facades.Orm.Query().Exec(s)
 
-		// 	facades.DB.Clauses(clause.OnConflict{
-		// 		Columns:   []clause.Column{{Name: "code"}},
-		// 		DoUpdates: clause.AssignmentColumns([]string{"trade", "pricechange", "changepercent", "buy", "sell", "settlement", "open", "high", "low", "volume", "amount", "ticktime", "per", "pb", "mktcap", "nmc", "turnoverratio"}), // column needed to be updated
-		// 	}).Create(&data)
-
 	}
 
 	return

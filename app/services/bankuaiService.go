@@ -18,7 +18,7 @@ import (
 )
 
 var sql string = "truncate symbols"
-var apiSina = "https://finance.sina.com.cn/realstock/company/"
+var sinaApi = "https://finance.sina.com.cn/realstock/company/"
 
 type BankuaiService struct {
 	redisUtil *redisUtil.RedisUtil
@@ -116,10 +116,10 @@ func getBankuaisFromSymbol(symbol models.Symbols) models.Bankuais {
 	MarketMap["8"] = "bj"
 	MarketMap["4"] = "bj"
 	market := MarketMap[strings.Split(symbol.Code, "")[0]]
-	api := apiSina + market + symbol.Code + "/nc.shtml"
+	api := sinaApi + market + symbol.Code + "/nc.shtml"
 
 	facades.Log.Info(api)
-	// api := apiSina + symbol.Market + "/nc.shtml"
+	// api := sinaApi + symbol.Market + "/nc.shtml"
 	content := httpUtil.Request(api, nil, "")
 	bankuaiRet := getBankuaisFromHtml(content)
 	bankuaiInfo.Zhuying = bankuaiRet["zhuying"]

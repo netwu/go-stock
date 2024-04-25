@@ -48,3 +48,30 @@ func (m *Chddata) UpdateChddataMonth() {
 	sql := "INSERT INTO chddata_months(code,name,month,avg_price) SELECT sb.code,sb.name,sb.month,sb.avg_tclose FROM (SELECT code,name,left(date,7)as month,avg(tclose) as avg_tclose FROM chddata GROUP BY code,month) as sb ON DUPLICATE KEY UPDATE avg_price=sb.avg_tclose;"
 	facades.Orm.Query().Exec(sql)
 }
+
+func (m *Chddata) Xg() {
+	// var results []map[string]interface{}
+	type DataResults struct {
+		Date string
+	}
+	type SymbolResults struct {
+		Code string
+		Name string
+	}
+	var dataResults []DataResults
+	var symbolResults []SymbolResults
+	facades.Orm.Query().Table("chddata").Select("distinct(date) as date").Order("date desc").Scan(&dataResults)
+	if len(dataResults) > 0 {
+		facades.Orm.Query().Table("symbols").Join("left join chddata c1 on symbols.code=c1.code left join chddata c2 on symbols.code=c2.code").Where("c1.date", dataResults[1].Date).Where("c2.date", dataResults[0].Date).Where("c2.`voturnover`/c1.voturnover >2 and c1.name  not like '%ST%' and c2.pchg<10 ").Select("symbols.code,symbols.name").Order("c1.turnover desc").Scan(&symbolResults)
+		var codes []string
+		for _, v := range symbolResults {
+			codes = append(codes, v.Code)
+		}
+
+		facades.Orm.Query().Table("symbols as s").Join("join chddata c1 on s.code=c1.code join chddata c2 on s.code=c2.code join chddata c3 on s.code=c3.code ").Where("c1.date", dataResults[40].Date).Where("c2.date", dataResults[20].Date).Where("c3.date", dataResults[0].Date).Where("c1.tclose<c2.tclose and c2.tclose<c3.tclose").Where("s.code in ?", codes).Select("s.code,s.name").Order("c1.turnover desc").Scan(&symbolResults)
+		for _, v := range symbolResults {
+			fmt.Println(v.Code, v.Name)
+		}
+
+	}
+}
