@@ -39,7 +39,7 @@ var Fields = []string{"TOPEN", "TCLOSE", "HIGH", "LOW", "VOTURNOVER", "VATURNOVE
 // var apiHost = "https://data.eastmoney.com/stockcomment/api/600032.json"
 var chddataApiHost = "http://push2his.eastmoney.com/api/qt/stock/kline/get?klt=101&fqt=1&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&rtntype=6&"
 
-var detailApiHost = "http://push2.eastmoney.com/api/qt/stock/get?fields=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f57,f107,f162,f152,f167,f92,f59,f183,f184,f105,f185,f186,f187,f173,f188,f84,f116,f85,f117,f190,f189,f62,f55&secid=0.002271"
+// var detailApiHost = "http://push2.eastmoney.com/api/qt/stock/get?fields=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f57,f107,f162,f152,f167,f92,f59,f183,f184,f105,f185,f186,f187,f173,f188,f84,f116,f85,f117,f190,f189,f62,f55&secid=0.002271"
 
 type ChddataService struct {
 	redisUtil *redisUtil.RedisUtil
@@ -106,17 +106,16 @@ func (chddataService *ChddataService) GetAllChddataMulity() {
 	chddataService.getLastDate()
 	count := int(chddataService.redisUtil.RedisLLen(symbolKey))
 	if count > 0 {
-		pageSize := 20
+		pageSize := 10
 		var pageCount int
-
 		if count < pageSize {
 			pageCount = 1
 		} else {
 			pageCount = int(math.Ceil(float64(count) / float64(pageSize)))
 		}
 
-		wgChddata := sync.WaitGroup{}
 		for page := 0; page <= pageCount; page++ {
+			wgChddata := sync.WaitGroup{}
 			for perPage := 0; perPage < pageSize; perPage++ {
 				wgChddata.Add(1)
 				go func() {
@@ -175,6 +174,7 @@ func (chddataService *ChddataService) GetChddataMulity() {
 		chddateModel := models.Chddata{}
 		chddateModel.Store(chddatas)
 	}
+	time.Sleep(time.Duration(1) * time.Second)
 	return
 
 }
@@ -204,68 +204,69 @@ func (chddataService *ChddataService) getChddataFromSymbol(symbol models.Symbols
 	facades.Log.Info("requestapi:", api)
 
 	content := httpUtil.Request(api, getHeader(), proxy)
-	chddataMaps := chddataService.ParseChddataFromHtml(content)
+	fmt.Println(content)
+	// panic("getChddataFromSymbol")
+	chddataMaps := chddataService.ParseChddata(content)
 
-	if chddataMaps != nil {
-		for _, chddataMap := range chddataMaps {
-			chddata.Market = symbol.Market
-			chddata.Code = symbol.Code
-			chddata.Name = symbol.Name
-			chddata.Date = chddataMap["date"].(string)
-			chddata.Tclose = 0
-			if nil != chddataMap["TCLOSE"] {
-				chddata.Tclose = chddataMap["TCLOSE"].(float64)
-			}
-
-			chddata.High = 0
-			if nil != chddataMap["HIGH"] {
-				chddata.High = chddataMap["HIGH"].(float64)
-			}
-			chddata.Low = 0
-			if nil != chddataMap["LOW"] {
-				chddata.Low = chddataMap["LOW"].(float64)
-			}
-			chddata.Topen = 0
-			if nil != chddataMap["TOPEN"] {
-				chddata.Topen = chddataMap["TOPEN"].(float64)
-			}
-
-			chddata.Chg = 0
-			if nil != chddataMap["CHG"] {
-				chddata.Chg = chddataMap["CHG"].(float64)
-			}
-			chddata.Pchg = 0
-			if nil != chddataMap["PCHG"] {
-				chddata.Pchg = chddataMap["PCHG"].(float64)
-
-			}
-
-			chddata.Turnover = 0
-			if nil != chddataMap["TURNOVER"] {
-				chddata.Turnover = chddataMap["TURNOVER"].(float64)
-			}
-			chddata.Voturnover = 0
-			if nil != chddataMap["VOTURNOVER"] {
-				chddata.Voturnover = chddataMap["VOTURNOVER"].(float64)
-			}
-			chddata.Vaturnover = 0
-			if nil != chddataMap["VATURNOVER"] {
-				chddata.Vaturnover = chddataMap["VATURNOVER"].(float64)
-			}
-
-			chddata.Tcap = 0
-			if nil != chddataMap["TCAP"] {
-				chddata.Tcap = chddataMap["TCAP"].(float64)
-			}
-
-			chddata.Mcap = 0
-			if nil != chddataMap["MCAP"] {
-				chddata.Mcap = chddataMap["MCAP"].(float64)
-			}
-			chddata.Amplitude = 0
-			chddatas = append(chddatas, chddata)
+	for _, chddataMap := range chddataMaps {
+		chddata.Market = symbol.Market
+		chddata.Code = symbol.Code
+		chddata.Name = symbol.Name
+		chddata.Date = chddataMap["date"].(string)
+		chddata.Tclose = 0
+		if nil != chddataMap["TCLOSE"] {
+			chddata.Tclose = chddataMap["TCLOSE"].(float64)
 		}
+
+		chddata.High = 0
+		if nil != chddataMap["HIGH"] {
+			chddata.High = chddataMap["HIGH"].(float64)
+		}
+		chddata.Low = 0
+		if nil != chddataMap["LOW"] {
+			chddata.Low = chddataMap["LOW"].(float64)
+		}
+		chddata.Topen = 0
+		if nil != chddataMap["TOPEN"] {
+			chddata.Topen = chddataMap["TOPEN"].(float64)
+		}
+
+		chddata.Chg = 0
+		if nil != chddataMap["CHG"] {
+			chddata.Chg = chddataMap["CHG"].(float64)
+		}
+		chddata.Pchg = 0
+		if nil != chddataMap["PCHG"] {
+			chddata.Pchg = chddataMap["PCHG"].(float64)
+
+		}
+
+		chddata.Turnover = 0
+		if nil != chddataMap["TURNOVER"] {
+			chddata.Turnover = chddataMap["TURNOVER"].(float64)
+		}
+		chddata.Voturnover = 0
+		if nil != chddataMap["VOTURNOVER"] {
+			chddata.Voturnover = chddataMap["VOTURNOVER"].(float64)
+		}
+		chddata.Vaturnover = 0
+		if nil != chddataMap["VATURNOVER"] {
+			chddata.Vaturnover = chddataMap["VATURNOVER"].(float64)
+		}
+
+		chddata.Tcap = 0
+		if nil != chddataMap["TCAP"] {
+			chddata.Tcap = chddataMap["TCAP"].(float64)
+		}
+
+		chddata.Mcap = 0
+		if nil != chddataMap["MCAP"] {
+			chddata.Mcap = chddataMap["MCAP"].(float64)
+		}
+		chddata.Amplitude = 0
+		chddatas = append(chddatas, chddata)
 	}
+
 	chddataService.redisUtil.DelKeyRedis("max_date:" + symbol.Code)
 	return chddatas
 }
@@ -280,7 +281,7 @@ func getHeader() map[string]string {
 	return httpHeader
 }
 
-func (chddataService *ChddataService) ParseChddataFromHtml(htmlContent string) []map[string]interface{} {
+func (chddataService *ChddataService) ParseChddata(htmlContent string) []map[string]interface{} {
 	// var chddataMaps []map[string]interface{}
 	var dfcfKlineJson DfcfKlineResponse
 

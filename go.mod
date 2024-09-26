@@ -6,9 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/goravel/framework v1.4.0
-	github.com/panjf2000/ants v1.3.0
 	github.com/shopspring/decimal v1.2.0
-	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/text v0.3.7
 	google.golang.org/grpc v1.44.0
 	gorm.io/gorm v1.23.8
@@ -102,6 +100,7 @@ require (
 	github.com/streadway/amqp v1.0.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
+	github.com/urfave/cli/v2 v2.3.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect
 	github.com/xdg-go/stringprep v1.0.2 // indirect

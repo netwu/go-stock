@@ -18,6 +18,6 @@ func (kernel Kernel) Commands() []console.Command {
 	return []console.Command{
 		&commands.SendEmails{},
 		&commands.Migration{},
-		&commands.Crawl{},
+		&commands.Start{},
 	}
 }

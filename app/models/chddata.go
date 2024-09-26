@@ -49,28 +49,37 @@ func (m *Chddata) UpdateChddataMonth() {
 	facades.Orm.Query().Exec(sql)
 }
 
-func (m *Chddata) Xg() {
+func (m *Chddata) Xg(date string) {
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
 	// var results []map[string]interface{}
 	type DataResults struct {
 		Date string
 	}
 	type SymbolResults struct {
-		Code string
-		Name string
+		Code   string
+		Name   string
+		Buy    float64
+		Mktcap float64
 	}
 	var dataResults []DataResults
 	var symbolResults []SymbolResults
-	facades.Orm.Query().Table("chddata").Select("distinct(date) as date").Order("date desc").Scan(&dataResults)
+	facades.Orm.Query().Table("chddata").Select("distinct(date) as date").Where("date<=?", date).Order("date desc").Scan(&dataResults)
 	if len(dataResults) > 0 {
-		facades.Orm.Query().Table("symbols").Join("left join chddata c1 on symbols.code=c1.code left join chddata c2 on symbols.code=c2.code").Where("c1.date", dataResults[1].Date).Where("c2.date", dataResults[0].Date).Where("c2.`voturnover`/c1.voturnover >2 and c1.name  not like '%ST%' and c2.pchg<10 ").Select("symbols.code,symbols.name").Order("c1.turnover desc").Scan(&symbolResults)
+		facades.Orm.Query().Table("symbols s").Join("left join chddata c1 on s.code=c1.code left join chddata c2 on s.code=c2.code").Where("c1.date", dataResults[1].Date).Where("c2.date", dataResults[0].Date).Where("c2.`voturnover`/c1.voturnover >2 and c1.name not like '%ST%' and c1.code not like '%30%' and c1.code not like '%68%' and c2.pchg<10 and s.mktcap>20000000000 and s.mktcap<35000000000 and c2.chg>0").Select("s.code,s.name").Order("c1.turnover desc").Scan(&symbolResults)
 		var codes []string
 		for _, v := range symbolResults {
 			codes = append(codes, v.Code)
 		}
 
-		facades.Orm.Query().Table("symbols as s").Join("join chddata c1 on s.code=c1.code join chddata c2 on s.code=c2.code join chddata c3 on s.code=c3.code ").Where("c1.date", dataResults[40].Date).Where("c2.date", dataResults[20].Date).Where("c3.date", dataResults[0].Date).Where("c1.tclose<c2.tclose and c2.tclose<c3.tclose").Where("s.code in ?", codes).Select("s.code,s.name").Order("c1.turnover desc").Scan(&symbolResults)
+		facades.Orm.Query().Table("symbols as s").Join("join chddata c1 on s.code=c1.code join chddata c2 on s.code=c2.code join chddata c3 on s.code=c3.code ").Where("c1.date", dataResults[60].Date).Where("c2.date", dataResults[30].Date).Where("c3.date", dataResults[0].Date).Where("c1.tclose<c2.tclose and c2.tclose<c3.tclose").Where("s.code in ? AND s.mktcap>20000000000 and s.mktcap<35000000000", codes).Select("s.code,s.name,s.Buy,s.mktcap").Order("c1.turnover desc").Scan(&symbolResults)
+		fmt.Println("代码", "名字", "买入价", "总市值")
 		for _, v := range symbolResults {
-			fmt.Println(v.Code, v.Name)
+			// 市值格式化为亿
+
+			v.Mktcap = v.Mktcap / 100000000
+			fmt.Println(v.Code, v.Name, v.Buy, v.Mktcap)
 		}
 
 	}

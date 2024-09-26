@@ -9,3 +9,4 @@
 # 爬取数据
 
     go run . artisan crawl
+    go run . artisan start
