@@ -124,18 +124,19 @@ func (chddataService *ChddataService) GetAllChddataMulity() {
 				}()
 			}
 			wgChddata.Wait()
-			// time.Sleep(time.Duration(1) * time.Second)
+			// sleep 100毫秒
+			// time.Sleep(time.Duration(50) * time.Millisecond)
 		}
 	}
 	chddateModel := models.Chddata{}
 	chddateModel.UpdateChddataMonth()
-	return
+	// return
 }
 
 func (chddataService *ChddataService) PushRedis() {
 	chddataService.redisUtil.DelKeyRedis(symbolKey)
 	var results []map[string]interface{}
-	facades.Orm.Query().Table("symbols").Order("id").Scan(&results)
+	facades.Orm.Query().Table("symbols").Where("name not like '%退市%'").Order("id").Scan(&results)
 	for _, symbol := range results {
 		jsonString, err := json.Marshal(symbol)
 		if err != nil {
@@ -151,23 +152,27 @@ func (chddataService *ChddataService) PushRedis() {
 func (chddataService *ChddataService) getLastDate() {
 	// sql := "from chddata group by code"
 	var results []map[string]interface{}
-	facades.Orm.Query().Table("chddata").Select("code,max(date) max_date ").Group("code").Scan(&results)
+	facades.Orm.Query().Table("chddata").Select("code,max(date) max_date,updated_at").Group("code").Scan(&results)
+	today := time.Now().Format("20060102")
 	for _, v := range results {
+		lastDay := v["max_date"].(time.Time).Format("20060102")
+		// 如果today=lastDay 并且v.updated_at>15点则跳过
+		if today == lastDay {
+			updated_at := v["updated_at"].(time.Time)
+			if updated_at.Hour() >= 15 {
+				continue
+			}
+		}
 		chddataService.redisUtil.RedisSet("max_date:"+v["code"].(string), v["max_date"].(time.Time).Format("20060102"), 0)
 	}
-	return
+	// return
 }
 
 func (chddataService *ChddataService) GetChddataMulity() {
-	// func (chddataService *ChddataService) GetChddataMulity() {
-	// facades.Log.Info("getChddataMulity")
 	var symbol models.Symbols
-
 	// symbolStr := chddataService.redisUtil.RedisRPop(chddataService.redisConn, symbolKey)
 	symbolStr := chddataService.redisUtil.RedisRPop(symbolKey)
-
 	json.Unmarshal([]byte(symbolStr), &symbol)
-
 	chddatas := chddataService.getChddataFromSymbol(symbol, "")
 
 	if chddatas != nil {
@@ -175,7 +180,7 @@ func (chddataService *ChddataService) GetChddataMulity() {
 		chddateModel.Store(chddatas)
 	}
 	time.Sleep(time.Duration(1) * time.Second)
-	return
+	// return
 
 }
 
@@ -191,9 +196,6 @@ func (chddataService *ChddataService) getChddataFromSymbol(symbol models.Symbols
 		start = max_date
 	}
 	end := time.Now().Format("20060102")
-	if start == end {
-		return nil
-	}
 
 	secid := symbol.Market + "." + symbol.Code
 	// symbolnode := strings.Replace(symbol.Market, "sh", "0", -1)
