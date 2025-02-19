@@ -61,17 +61,17 @@ func getAllData() error {
 	services.GetAllStock()
 	wgAll := sync.WaitGroup{}
 
-	bankuaiService := services.NewBankuaiService()
+	// bankuaiService := services.NewBankuaiService()
 	wgAll.Add(1)
 	go func() {
 		services.GetAllChddataMulity()
 		wgAll.Done()
 	}()
-	wgAll.Add(1)
-	go func() {
-		bankuaiService.GetAllBankuaiMulity()
-		wgAll.Done()
-	}()
+	// wgAll.Add(1)
+	// go func() {
+	// bankuaiService.GetAllBankuaiMulity()
+	// wgAll.Done()
+	// }()
 	wgAll.Wait()
 	return nil
 }

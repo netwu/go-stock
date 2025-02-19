@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/goravel/framework/database/orm"
@@ -34,12 +35,42 @@ type Chddata struct {
 }
 
 func (m *Chddata) Store(datas []Chddata) (err error) {
-	for _, data := range datas {
-		sql := "INSERT INTO chddata (date,market,code,name,tclose,high,low,topen,chg,pchg,turnover,voturnover,vaturnover,tcap,mcap,amplitude) VALUES( '%s','%s','%s','%s',%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f ) ON DUPLICATE KEY UPDATE tclose =%f,high=%f,low =%f,topen =%f,chg =%f,pchg=%f,turnover =%f,voturnover=%f,vaturnover=%f,tcap=%f,mcap=%f,amplitude=%f"
-		s := fmt.Sprintf(sql, data.Date, data.Market, data.Code, data.Name, data.Tclose, data.High, data.Low, data.Topen, data.Chg, data.Pchg, data.Turnover, data.Voturnover, data.Vaturnover, data.Tcap, data.Mcap, data.Amplitude, data.Tclose, data.High, data.Low, data.Topen, data.Chg, data.Pchg, data.Turnover, data.Voturnover, data.Vaturnover, data.Tcap, data.Mcap, data.Amplitude)
-		facades.Log.Info("bankuaidic sql", s)
-		facades.Orm.Query().Exec(s)
+	if len(datas) == 0 {
+		return nil
 	}
+
+	// 构建批量插入SQL
+	var values []string
+	for _, data := range datas {
+		value := fmt.Sprintf("('%s','%s','%s','%s',%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f)",
+			data.Date, data.Market, data.Code, data.Name,
+			data.Tclose, data.High, data.Low, data.Topen,
+			data.Chg, data.Pchg, data.Turnover,
+			data.Voturnover, data.Vaturnover,
+			data.Tcap, data.Mcap, data.Amplitude)
+		values = append(values, value)
+	}
+
+	sql := `INSERT INTO chddata (date,market,code,name,tclose,high,low,topen,chg,pchg,turnover,voturnover,vaturnover,tcap,mcap,amplitude) 
+            VALUES %s 
+            ON DUPLICATE KEY UPDATE 
+            tclose=VALUES(tclose),
+            high=VALUES(high),
+            low=VALUES(low),
+            topen=VALUES(topen),
+            chg=VALUES(chg),
+            pchg=VALUES(pchg),
+            turnover=VALUES(turnover),
+            voturnover=VALUES(voturnover),
+            vaturnover=VALUES(vaturnover),
+            tcap=VALUES(tcap),
+            mcap=VALUES(mcap),
+            amplitude=VALUES(amplitude)`
+
+	batchSQL := fmt.Sprintf(sql, strings.Join(values, ","))
+	facades.Log.Info("执行批量更新SQL")
+
+	facades.Orm.Query().Exec(batchSQL)
 
 	return nil
 }
