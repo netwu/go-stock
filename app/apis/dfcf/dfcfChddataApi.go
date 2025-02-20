@@ -110,7 +110,7 @@ func (chddataService *ChddataService) GetAllChddataMulity() {
 		return
 	}
 	// 优化并发处理
-	pageSize := 50
+	pageSize := 10
 	pageCount := int(math.Ceil(float64(count) / float64(pageSize)))
 
 	for page := 0; page < pageCount; page++ {
@@ -120,7 +120,7 @@ func (chddataService *ChddataService) GetAllChddataMulity() {
 			go chddataService.processSymbol(wgChddata)
 		}
 		wgChddata.Wait()
-		// time.Sleep(time.Duration(100) * time.Millisecond)
+		time.Sleep(time.Duration(100) * time.Millisecond)
 	}
 
 	// 更新月度数据

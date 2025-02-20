@@ -61,7 +61,7 @@ func GetStock() error {
 
 	symbolModel := models.Symbols{}
 	fmt.Println("start")
-	pages := 27
+	pages := 29
 	pagesize := "200"
 	// pages := 1
 	// pagesize := "1"
