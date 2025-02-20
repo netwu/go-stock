@@ -105,7 +105,7 @@ func (m *Chddata) Xg(date string) {
 	var symbolResults []SymbolResults
 	facades.Orm.Query().Table("chddata").Select("distinct(date) as date").Where("date<=?", date).Order("date desc").Scan(&dataResults)
 	if len(dataResults) > 0 {
-		facades.Orm.Query().Table("symbols s").Join("left join chddata c1 on s.code=c1.code left join chddata c2 on s.code=c2.code").Where("c1.date", dataResults[1].Date).Where("c2.date", dataResults[0].Date).Where("c2.`voturnover`/c1.voturnover >2 and c1.name not like '%ST%' and c1.code not like '%30%' and c1.code not like '%68%'  and c2.pchg<10 and c2.chg>0").Select("s.code,s.name").Order("c1.turnover desc").Scan(&symbolResults)
+		facades.Orm.Query().Table("symbols s").Join("left join chddata c1 on s.code=c1.code left join chddata c2 on s.code=c2.code").Where("c1.date", dataResults[1].Date).Where("c2.date", dataResults[0].Date).Where("c2.`voturnover`/c1.voturnover >2 and c1.name not like '%ST%' and c1.code not like '%30%' and c1.code not like '%68%' and s.mktcap>20000000000 and s.mktcap<35000000000 and c2.pchg<10 and c2.chg>0").Select("s.code,s.name").Order("c1.turnover desc").Scan(&symbolResults)
 		var codes []string
 		for _, v := range symbolResults {
 			codes = append(codes, v.Code)

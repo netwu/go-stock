@@ -105,6 +105,9 @@ func dfcfRequestApi(apiTmp string) []models.Symbols {
 		symbol.Per = symbolJson.F9
 		symbol.Pb = symbolJson.F23
 		symbol.Mktcap = symbolJson.F20
+		if symbol.Mktcap == 0 {
+			continue
+		}
 		symbol.Nmc = symbolJson.F21
 		symbol.Turnoverratio = symbolJson.F8
 		symbols = append(symbols, symbol)
